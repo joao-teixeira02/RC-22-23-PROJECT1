@@ -1,6 +1,7 @@
 // Link layer protocol implementation
 
 #include "link_layer.h"
+#include "frame_handler.h"
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,7 +37,6 @@ int fd;
 ////////////////////////////////////////////////
 int llopen(LinkLayer connectionParameters)
 {
-
     fd = open(connectionParameters.serialPort, O_RDWR | O_NOCTTY);
     if (fd < 0)
     {
@@ -44,9 +44,9 @@ int llopen(LinkLayer connectionParameters)
         exit(-1);
     }
     
-    if (connectionParameters.role == 0) {
+    if (connectionParameters.role == LlTx) {
 
-        unsigned char SET_packet[SU_BUF_SIZE] = {0}; 
+        unsigned char SET_packet[SU_BUF_SIZE];
 
         SET_packet[0] = FLAG;
         SET_packet[1] = TRANSMITTER_COMMAND;
@@ -54,12 +54,11 @@ int llopen(LinkLayer connectionParameters)
         SET_packet[3] = (TRANSMITTER_COMMAND ^ CONTROL_SET);
         SET_packet[4] = FLAG;
 
-        sendFrame(SET_packet, connectionParameters);
-        receiveFrame(UA);
+        transmitter(fd, SET_packet, connectionParameters);
     }
-    else if (connectionParameters.role == 1) {
+    else if (connectionParameters.role == LlRx) {
 
-        unsigned char UA_packet[SU_BUF_SIZE] = {0};
+        unsigned char UA_packet[SU_BUF_SIZE];
         
         UA_packet[0] = FLAG;
         UA_packet[1] = RECEIVER_REPLY;
@@ -67,8 +66,7 @@ int llopen(LinkLayer connectionParameters)
         UA_packet[3] = (RECEIVER_REPLY^CONTROL_UA);
         UA_packet[4] = FLAG;
 
-        receiveFrame(SET);
-        sendFrame(UA_packet, connectionParameters);
+        receiver(fd, UA_packet, connectionParameters);
     }
     else {
         printf("Error in llopen: %d is an invalid value for role", connectionParameters.role);
@@ -103,11 +101,12 @@ int llread(unsigned char *packet)
 ////////////////////////////////////////////////
 int llclose(int showStatistics)
 {
-    if (tcsetattr(fd, TCSANOW, &oldtio) == -1)
+    /*if (tcsetattr(fd, TCSANOW, &oldtio) == -1)
     {
         perror("tcsetattr");
         exit(-1);
     }
 
-    return close(fd); 
+    return close(fd); */
+    return 0;
 }
