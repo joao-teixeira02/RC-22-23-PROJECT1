@@ -31,6 +31,7 @@
 #define MAX_TIMEOUTS 3
 
 int fd;
+LinkLayer parameters;
 
 ////////////////////////////////////////////////
 // LLOPEN
@@ -43,6 +44,8 @@ int llopen(LinkLayer connectionParameters)
         perror(connectionParameters.serialPort);
         exit(-1);
     }
+
+    setupTermios(connectionParameters);
     
     if (connectionParameters.role == LlTx) {
 

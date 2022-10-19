@@ -182,7 +182,7 @@ int transmitter(int fd, unsigned char packet[], LinkLayer connectionParameters)
 }
 
 int receiver(int fd, unsigned char packet[], LinkLayer connectionParameters) {
-    
+
     unsigned char in_char;
 
     while (state != StateSTOP)
