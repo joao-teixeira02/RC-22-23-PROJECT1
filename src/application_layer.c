@@ -53,8 +53,6 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     char byte_size = 0x0;
     char size_in_bytes[size_counter];
 
-    printf("Result: %f\n", result);
-
     unsigned char control_packet[7];
 
     control_packet[0] = CONTROL_START;
