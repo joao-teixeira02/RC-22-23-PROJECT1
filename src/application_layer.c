@@ -10,6 +10,8 @@
 #define CONTROL_START 0x02
 #define CONTROL_END 0x03
 #define TYPE_SIZE 0x00
+#define L2 0x02
+#define L1 0x00
 
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
                       int nTries, int timeout, const char *filename)
@@ -31,21 +33,10 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     connectionparameters.nRetransmissions = nTries;
     connectionparameters.timeout = timeout;
 
-    //int fd = llopen(connectionparameters);
+    int fd = llopen(connectionparameters);
 
-    FILE *in, *out;
+    FILE *in;
     in = fopen(filename, "rb");
-    //out = fopen("penguin_mod.gif", "wb");
-
-    /*char c = fgetc(in);
-    while (!feof(in))
-    {
-        fputc(c, out);
-        c = fgetc(in);
-    }
-
-    fclose(in);
-    fclose(out); */
 
     fseek(in, 0L, SEEK_END);
     long int sz = ftell(in);
@@ -53,7 +44,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
     fclose(in);
 
-    int size_counter = 1;
+    double size_counter = 1.0;
     long int size = sz;
     while(size >>= 1){
         size_counter++;
@@ -64,19 +55,11 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
     double result1;
 
-    result1 = (double) size_counter / 8.0;
+    result1 = size_counter / 8.0;
 
     double result = ceil(result);
 
     printf("Result: %f\n", result);
-
-    printf("Tamanho do ficheiro: %ld bytes\n", sz);
-    printf("Tamanho do Tamanho do fichero: %d bits\n", size_counter);
-
-    sprintf(&byte_size, "%x", result);
-    printf("Byte size: %c\n", byte_size);
-    sprintf(&size_in_bytes, "%x", sz);
-    printf("size in bytes: %s\n", size_in_bytes);
 
     char control_packet[7];
 
@@ -91,12 +74,33 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         x++;
     }
 
-    printf("%x\n", control_packet[0]);
-    printf("%x\n", control_packet[1]);
-    printf("%x\n", control_packet[2]);
-    printf("%x\n", control_packet[3]);
-    printf("%x\n", control_packet[4]);
-    printf("%x\n", control_packet[5]);
-    printf("%x\n", control_packet[6]);
+    llwrite(control_packet, 7);
+
+    char info_packet[516];
+    char info_packet[0] = CONTROL_DATA;
+
+    char c = fgetc(in);
+    int char_counter = 0;
+    int n_seq = 0;
+    char hex_n_seq;
+
+    while (!feof(in))
+    {
+        info_packet[1] = sprintf(hex_n_seq, "%x", n_seq%255);
+        info_packet[2] = L2;
+        info_packet[3] = L1;
+        while (char_counter < 512) {
+            if (!feof(in)) break;
+            info_packet[4+char_counter] = c;
+            printf("info_packet value %d: %c\n", 4+char_counter, info_packet[4+char_counter]);
+            char_counter++;
+            c = fgetc(in);
+        }
+        llwrite(info_packet, 516);
+        n_seq++;
+    }
+
+    fclose(in);
+    fclose(out);
 
 }
