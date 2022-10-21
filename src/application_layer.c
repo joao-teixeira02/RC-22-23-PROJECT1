@@ -44,24 +44,18 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
     fclose(in);
 
-    double size_counter = 1.0;
+    int size_counter = 1;
     long int size = sz;
     while(size >>= 1){
         size_counter++;
     }
 
-    char byte_size;
+    char byte_size = 0x0;
     char size_in_bytes[size_counter];
-
-    double result1;
-
-    result1 = size_counter / 8.0;
-
-    double result = ceil(result);
 
     printf("Result: %f\n", result);
 
-    char control_packet[7];
+    unsigned char control_packet[7];
 
     control_packet[0] = CONTROL_START;
     control_packet[1] = TYPE_SIZE;
@@ -76,8 +70,8 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
     llwrite(control_packet, 7);
 
-    char info_packet[516];
-    char info_packet[0] = CONTROL_DATA;
+    unsigned char info_packet[MAX_PAYLOAD_SIZE];
+    info_packet[0] = CONTROL_DATA;
 
     char c = fgetc(in);
     int char_counter = 0;
@@ -89,18 +83,17 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         info_packet[1] = sprintf(hex_n_seq, "%x", n_seq%255);
         info_packet[2] = L2;
         info_packet[3] = L1;
-        while (char_counter < 512) {
+        while (char_counter < 996) {
             if (!feof(in)) break;
             info_packet[4+char_counter] = c;
             printf("info_packet value %d: %c\n", 4+char_counter, info_packet[4+char_counter]);
             char_counter++;
             c = fgetc(in);
         }
-        llwrite(info_packet, 516);
+        llwrite(info_packet, MAX_PAYLOAD_SIZE);
         n_seq++;
     }
 
     fclose(in);
-    fclose(out);
 
 }
