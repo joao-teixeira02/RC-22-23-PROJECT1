@@ -29,8 +29,8 @@ int setupTermios(LinkLayer connectionParameters);
 
 void alarmHandler(int signal);
 
-int transmitter(int fd, unsigned char packet[], LinkLayer connectionParameters);
+int transmitter(unsigned char packet[], LinkLayer connectionParameters);
 
-int receiver(int fd, unsigned char packet[], LinkLayer connectionParameters);
+int receiver(unsigned char packet[], LinkLayer connectionParameters);
 
 #endif // _FRAME_HANDLER_H

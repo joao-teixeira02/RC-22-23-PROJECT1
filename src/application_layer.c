@@ -35,70 +35,99 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
     int fd = llopen(connectionparameters);
 
-    FILE *in;
-    in = fopen(filename, "rb");
+    if (connectionparameters.role == LlTx) {
+        
+        FILE *in;
+        in = fopen(filename, "rb");
 
-    fseek(in, 0L, SEEK_END);
-    long int file_size = ftell(in);
-    fseek(in, 0L, SEEK_SET);
+        fseek(in, 0L, SEEK_END);
+        long int file_size = ftell(in);
+        fseek(in, 0L, SEEK_SET);
 
-    fclose(in);
-
-    int size_in_bits = 1;
-    long int temp = file_size;
-    while(temp >>= 1){
-        size_in_bits++;
-    }
-
-    int size_in_bytes = (size_in_bits + (8 - 1)) / 8;
-
-    unsigned char control_packet[3 + size_in_bytes];
-
-    control_packet[0] = CONTROL_START;
-    control_packet[1] = TYPE_SIZE;
-    control_packet[2] = size_in_bytes;
-
-    for (int i = 0; i < size_in_bytes; i++) {
-        control_packet[3 + size_in_bytes - 1 - i] = (file_size & (0xff << (8 * i))) >> (8 * i);
-    }
-
-/*     printf("Pacote de Controlo \n");
-    printf("Campo de Controlo: %x\n", control_packet[0]);
-    printf("Tipo de parametro: %x\n", control_packet[1]);
-    printf("Tamanho do parametro: %d bytes\n", control_packet[2]);
-
-    for(int x = 0; x < size_in_bytes; x++){
-        printf("Tamanho do ficheiro %d: %x\n", x, control_packet[3 + x]);
-    } */
-
-    
-
-    llwrite(control_packet, 7);
-
-    unsigned char info_packet[MAX_PAYLOAD_SIZE];
-    info_packet[0] = CONTROL_DATA;
-
-    char c = fgetc(in);
-    int char_counter = 0;
-    int n_seq = 0;
-    char hex_n_seq;
-
-    while (!feof(in))
-    {
-        info_packet[1] = sprintf(hex_n_seq, "%x", n_seq%255);
-        info_packet[2] = L2;
-        info_packet[3] = L1;
-        while (char_counter < 996) {
-            if (!feof(in)) break;
-            info_packet[4+char_counter] = c;
-            printf("info_packet value %d: %c\n", 4+char_counter, info_packet[4+char_counter]);
-            char_counter++;
-            c = fgetc(in);
+        int size_in_bits = 1;
+        long int temp = file_size;
+        while(temp >>= 1){
+            size_in_bits++;
         }
-        llwrite(info_packet, MAX_PAYLOAD_SIZE);
-        n_seq++;
-    }
 
-    fclose(in);
+        int size_in_bytes = (size_in_bits + (8 - 1)) / 8;
+
+        unsigned char control_packet[3 + size_in_bytes];
+
+        control_packet[0] = CONTROL_START;
+        control_packet[1] = TYPE_SIZE;
+        control_packet[2] = size_in_bytes;
+
+        for (int i = 0; i < size_in_bytes; i++) {
+            control_packet[3 + size_in_bytes - 1 - i] = (file_size & (0xff << (8 * i))) >> (8 * i);
+        }
+
+/*         printf("Pacote de Controlo \n");
+        printf("Campo de Controlo: %x\n", control_packet[0]);
+        printf("Tipo de parametro: %x\n", control_packet[1]);
+        printf("Tamanho do parametro: %d bytes\n", control_packet[2]);
+
+        for(int x = 0; x < size_in_bytes; x++){
+            printf("Tamanho do ficheiro %d: %x\n", x, control_packet[3 + x]);
+        }  */
+
+        llwrite(control_packet, 3 + size_in_bytes);
+
+        unsigned char info_packet[MAX_PAYLOAD_SIZE];
+        info_packet[0] = CONTROL_DATA;
+
+        char c = fgetc(in);
+        int char_counter = 0;
+        int n_seq = 0;
+        int stop = 0;
+        while (!stop)
+        {
+            printf("Creating new packet\n");
+            info_packet[1] = n_seq%255;
+            printf("Added n_seq %d\n", info_packet[1]);
+            while (char_counter < 996 && !stop) {
+                info_packet[4 + char_counter] = c;
+                printf("info_packet value %d: %c\n", 4 + char_counter, info_packet[4 + char_counter]);
+                char_counter++;
+                c = fgetc(in);
+                if (c == EOF) {
+                    if (feof(in)) {
+                        stop = 1;
+                    }
+                }
+            }
+            info_packet[2] = char_counter / 256;
+            info_packet[3] = char_counter % 256;
+            llwrite(info_packet, 4 + char_counter);
+            n_seq++;
+            char_counter = 0;
+        }
+
+        control_packet[0] = CONTROL_END;
+        llwrite(control_packet, 3 + size_in_bytes);
+
+        fclose(in);
+
+    } else if (connectionparameters.role == LlRx){
+/* 
+        unsigned char in_char;
+
+        //Reading Control packet
+        for(int x = 0; x < 4; x++){
+            llread(&in_char);
+        }
+
+        File *out;
+        out = fopen(filename, "wb");
+
+        //Reading Info packets
+        while (state != stateSTOP)
+        {
+            llread(&in_char);
+            //statemachine(&in_char);
+        }
+        
+        fclose(out); */
+    }   
 
 }

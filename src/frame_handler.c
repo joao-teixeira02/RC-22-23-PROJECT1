@@ -129,7 +129,7 @@ int setupTermios(LinkLayer connectionParameters)
     if (tcsetattr(fd, TCSANOW, &newtio) == -1)
     {
         perror("tcsetattr");
-        exit(-1);
+        //exit(-1);
     }
 
     printf("New termios structure set\n");
@@ -145,7 +145,7 @@ void alarmHandler(int signal)
     printf("Timeout #%d\n", timeout_count);
 }
 
-int transmitter(int fd, unsigned char packet[], LinkLayer connectionParameters) 
+int transmitter(unsigned char packet[], LinkLayer connectionParameters) 
 {
     (void)signal(SIGALRM, alarmHandler);
     (void)siginterrupt(SIGALRM,TRUE); //system call interrupted by alarm isn't restarted
@@ -181,7 +181,7 @@ int transmitter(int fd, unsigned char packet[], LinkLayer connectionParameters)
     return 0;  
 }
 
-int receiver(int fd, unsigned char packet[], LinkLayer connectionParameters) {
+int receiver(unsigned char packet[], LinkLayer connectionParameters) {
 
     unsigned char in_char;
 

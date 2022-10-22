@@ -57,7 +57,7 @@ int llopen(LinkLayer connectionParameters)
         SET_packet[3] = (TRANSMITTER_COMMAND ^ CONTROL_SET);
         SET_packet[4] = FLAG;
 
-        transmitter(fd, SET_packet, connectionParameters);
+        transmitter(SET_packet, connectionParameters);
     }
     else if (connectionParameters.role == LlRx) {
 
@@ -69,7 +69,7 @@ int llopen(LinkLayer connectionParameters)
         UA_packet[3] = (RECEIVER_REPLY^CONTROL_UA);
         UA_packet[4] = FLAG;
 
-        receiver(fd, UA_packet, connectionParameters);
+        receiver(UA_packet, connectionParameters);
     }
     else {
         printf("Error in llopen: %d is an invalid value for role", connectionParameters.role);
@@ -84,6 +84,15 @@ int llopen(LinkLayer connectionParameters)
 ////////////////////////////////////////////////
 int llwrite(const unsigned char *buf, int bufSize)
 {
+
+    /*
+    - recebe control e info packets do app layer
+    - faz byte stuffing 
+    - cria uma trama a partir deles 
+    - escreve a trama para o receiver
+    - esperar RR para terminar
+    - (usa state machine para verificar valores e auxilio no byte stuffing)
+    */
     int ret = write(fd, buf, bufSize);
     sleep(1);
     return ret;
@@ -94,6 +103,13 @@ int llwrite(const unsigned char *buf, int bufSize)
 ////////////////////////////////////////////////
 int llread(unsigned char *packet)
 {
+    /*
+    - recebe as tramas
+    - desfazer byte stuffing
+    - usa state machine para verificar se os valores que está a receber estão corretos
+    - guarda o packet recebido dentro da trama no packet de argumento
+    - envia RR como confirmação
+    */
     int ret = read(fd, packet, sizeof(&packet));
     sleep(1);
     return ret;
