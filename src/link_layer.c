@@ -31,6 +31,8 @@
 #define MAX_TIMEOUTS 3
 
 int fd;
+int n_seq = 0;
+int n_res = 1;
 LinkLayer parameters;
 
 ////////////////////////////////////////////////
@@ -110,9 +112,22 @@ int llread(unsigned char *packet)
     - guarda o packet recebido dentro da trama no packet de argumento
     - envia RR como confirmação
     */
-    int ret = read(fd, packet, sizeof(&packet));
-    sleep(1);
-    return ret;
+    int n = receiver_read(&packet);
+    if (n != -1) {
+        unsigned char RR_packet[SU_BUF_SIZE];
+        RR_packet[0] = FLAG;
+        RR_packet[1] = RECEIVER_REPLY;
+        if (n_res == 1) {
+            RR_packet[2] = 0x85;
+        }
+        else if (n_res == 0) {
+            RR_packet[2] = 0x05;
+        }
+        else {
+            printf("Error in n_res -> not a valid value (0 or 1)\n");
+            exit(-1);
+        }
+    }
 }
 
 ////////////////////////////////////////////////
