@@ -1,5 +1,6 @@
 // Receiver read header
 #include "link_layer.h"
+#include "frame_handler.h"
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,21 +12,10 @@
 #ifndef _RECEIVER_READ_H
 #define _RECEIVE_READ_H
 
-typedef enum{
-    StateSTART,
-    StateFLAG,
-    StateA,
-    StateC,
-    StateBCC1,
-    StateDATA,
-    StateDESTUFFING,
-    StateSTOP
-} State;
-
-void stateMachine(State * state, unsigned char byte);
+void stateMachineReceiver(State * state, unsigned char byte);
 
 int receiver_read(unsigned char * packet);
 
-unsigned char byteDestuffing(unsigned char byte);
+void byteDestuffing(unsigned char * byte);
 
 #endif // _RECEIVER_READ_H

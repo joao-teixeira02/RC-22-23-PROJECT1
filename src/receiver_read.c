@@ -11,7 +11,7 @@ State state;
 
 void byteDestuffing (unsigned char * byte) {
 
-    unsigned char result = byte ^ 0x20;
+    unsigned char result = *byte ^ 0x20;
 
     byte = &result;
 
@@ -20,12 +20,15 @@ void byteDestuffing (unsigned char * byte) {
 void stateMachineReceiver(State * state, unsigned char byte)
 {
     unsigned char C;
+    unsigned char C_REPLY;
 
     if (n_seq == 0) {
         C = 0x00;
+        C_REPLY = 0x40;
     }
     else if (n_seq == 1) {
         C = 0x40;
+        C_REPLY = 0x00;
     }
     else {
         printf("Error in n_seq -> not a valid value (0 or 1)\n");
@@ -62,8 +65,17 @@ void stateMachineReceiver(State * state, unsigned char byte)
         else if(byte == C){
             *state = StateC;
         }
+        else if(byte == C_REPLY) {
+            *state = StateREPLY;
+        }
         else {
             *state = StateSTART;
+        }
+        break;
+
+    case StateREPLY:
+        if (byte == FLAG) {
+            *state =  StateSTOP_REPLY;
         }
         break;
 
@@ -109,24 +121,32 @@ void stateMachineReceiver(State * state, unsigned char byte)
     }
 }
 
+int receiver_write(unsigned char * packet, int size) {
+    write(fd, packet, size);
+}
+
 int receiver_read(unsigned char * packet) {
 
     unsigned char byte;
     unsigned char BCC2 = 0x00;
-    unsigned char aux_packet[sizeof(packet)];
     int n_chars = 0;
+
+    state = StateSTART;
 
     while(state != StateSTOP) {
 
-        n_chars++;
-        read(fd, &byte, 1);
-
-        if (*state == StateDATA) {
-            addToPacket(&aux_packet, byte);
-            BCC2 = BCC2 ^ byte;
+        if (state == StateSTOP_REPLY) {
+            return -2;
         }
 
-        if (*state == StateDESTUFFING) {
+        read(fd, &byte, 1);
+
+        if (state == StateDATA) {
+            packet[n_chars] = byte;
+            n_chars++;
+            BCC2 = BCC2 ^ byte;
+        }
+        if (state == StateDESTUFFING) {
             byteDestuffing(&byte);
         }
 
@@ -134,8 +154,14 @@ int receiver_read(unsigned char * packet) {
 
     }
 
-    if (BCC2 == aux_packet[sizeof(aux_packet)]) {
-        packet = &aux_packet;
+    for (int i = 0; i < n_chars; i++) {
+        printf("packet[%d] = %x\n", i, packet[i]);
+    }
+
+    printf("packet[n_chars-2] = %x\n", packet[n_chars-2]);
+    printf("BCC2 = %x\n", BCC2);
+
+    if (BCC2 == packet[n_chars-2]) {
         return n_chars;
     }
     else return -1;

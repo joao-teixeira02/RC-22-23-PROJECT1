@@ -20,6 +20,11 @@ typedef enum{
     StateA,
     StateC,
     StateBCC,
+    StateBCC1,
+    StateDATA,
+    StateDESTUFFING,
+    StateREPLY,
+    StateSTOP_REPLY,
     StateSTOP
 } State;
 
