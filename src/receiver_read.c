@@ -9,14 +9,6 @@ extern int n_seq;
 
 State state;
 
-void byteDestuffing (unsigned char * byte) {
-
-    unsigned char result = *byte ^ 0x20;
-
-    byte = &result;
-
-}
-
 void stateMachineReceiver(State * state, unsigned char byte)
 {
     unsigned char C;
@@ -128,6 +120,7 @@ int receiver_write(unsigned char * packet, int size) {
 int receiver_read(unsigned char * packet) {
 
     unsigned char byte;
+    int flag = 0;
     unsigned char BCC2 = 0x00;
     int n_chars = 0;
 
@@ -141,27 +134,28 @@ int receiver_read(unsigned char * packet) {
 
         read(fd, &byte, 1);
 
-        if (state == StateDATA) {
-            packet[n_chars] = byte;
-            n_chars++;
-            BCC2 = BCC2 ^ byte;
-        }
-        if (state == StateDESTUFFING) {
-            byteDestuffing(&byte);
-        }
-
         stateMachineReceiver(&state, byte);
 
+        if (state == StateDESTUFFING) {
+            flag = 1;
+        }
+
+        if (state == StateDATA) {
+            if (flag == 1) {
+                byte = byte^0x20;
+                flag = 0;
+            }
+            packet[n_chars] = byte;
+            n_chars++;
+        }
+
     }
 
-    for (int i = 0; i < n_chars; i++) {
-        printf("packet[%d] = %x\n", i, packet[i]);
+    for (int i = 0; i < n_chars - 1; i++) {
+        BCC2 = BCC2 ^ packet[i];
     }
 
-    printf("packet[n_chars-2] = %x\n", packet[n_chars-2]);
-    printf("BCC2 = %x\n", BCC2);
-
-    if (BCC2 == packet[n_chars-2]) {
+    if (BCC2 == packet[n_chars-1]) {
         return n_chars;
     }
     else return -1;

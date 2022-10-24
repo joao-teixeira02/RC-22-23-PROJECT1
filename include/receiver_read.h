@@ -16,6 +16,4 @@ void stateMachineReceiver(State * state, unsigned char byte);
 
 int receiver_read(unsigned char * packet);
 
-void byteDestuffing(unsigned char * byte);
-
 #endif // _RECEIVER_READ_H

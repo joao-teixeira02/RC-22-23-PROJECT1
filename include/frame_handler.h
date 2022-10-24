@@ -25,7 +25,11 @@ typedef enum{
     StateDESTUFFING,
     StateREPLY,
     StateSTOP_REPLY,
-    StateSTOP
+    StateSTOP,
+    StateC_RR,
+    StateC_REJ,
+    StateBCC_RR,
+    StateBCC_REJ
 } State;
 
 void stateMachine(State * state, unsigned char byte, LinkLayer connectionParameters);

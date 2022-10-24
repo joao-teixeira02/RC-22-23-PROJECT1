@@ -3,6 +3,7 @@
 #include "link_layer.h"
 #include "frame_handler.h"
 #include "receiver_read.h"
+#include "disconnect.h"
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,6 +36,7 @@
 #define ESCAPE 0x7D
 #define FLAG_SUBST 0x5E
 #define ESCAPE_SUBST 0x5D
+#define CONTROL_DISC 0x0B
 
 #define TIMEOUT_SECS 3
 #define MAX_TIMEOUTS 3
@@ -45,6 +47,9 @@ int n_res = 1;
 LinkLayer parameters;
 extern int timeout_count;
 extern int alarm_enabled;
+
+struct termios oldtio;
+struct termios newtio;
 
 ////////////////////////////////////////////////
 // LLOPEN
@@ -110,21 +115,15 @@ int llwrite(const unsigned char *buf, int bufSize)
     unsigned char data_package[2000];
     data_package[0] = FLAG;
     data_package[1] = TRANSMITTER_COMMAND;
-    data_package[2] = (Ns) << 6;
-    data_package[4 + bufSize + 1] = FLAG;
-
-    if(buf[0] == CONTROL_START || buf[0] == CONTROL_END){
-        data_package[3] = BCC_HEADER;
-        data_package[4 + bufSize] = BCC_HEADER;
-    } else if (buf[0] == CONTROL_DATA) {
-        data_package[3] = BCC_DATA;
-        data_package[4 + bufSize] = BCC_DATA;
-    } else {
-        printf("Error reading buf[0] value in llwrite()\n");
-    }
+    data_package[2] = (n_seq) << 6;
+    data_package[3] = (TRANSMITTER_COMMAND ^ (n_seq) << 6);
+    
 
     int offset = 0;
+    unsigned char BCC2 = 0x00;
     for(int x = 0; x < bufSize; x++){
+        //printf("VALUE USED FOR BCC2: %x\n", buf[x]);
+        BCC2 = BCC2 ^ buf[x];
         if (buf[x] == FLAG) {
             data_package[4 + x + offset] = ESCAPE;
             data_package[4 + x + 1 + offset] = FLAG_SUBST;
@@ -137,7 +136,14 @@ int llwrite(const unsigned char *buf, int bufSize)
             data_package[4 + x + offset] = buf[x];       
         }
     }
+    data_package[4 + bufSize + 1 + offset] = FLAG;
 
+    data_package[4 + bufSize + offset] = BCC2;
+
+/*     for(int x = 0; x < 4 + bufSize + 2 + offset; x++){
+        printf("data_package %d: %x\n", x, data_package[x]);
+    }
+ */
     (void)signal(SIGALRM, alarmHandler);
     (void)siginterrupt(SIGALRM,TRUE);
 
@@ -146,6 +152,9 @@ int llwrite(const unsigned char *buf, int bufSize)
     int ret;
     timeout_count = 0;
     alarm_enabled = FALSE;
+    state = StateSTART;
+
+    printf("n_seq: %d\n", n_seq);
 
     while (state != StateSTOP && timeout_count < parameters.nRetransmissions)
     {
@@ -171,8 +180,12 @@ int llwrite(const unsigned char *buf, int bufSize)
         exit(-1);
     }
     else{
+        if (n_seq == 1){
+            n_seq = 0;
+        } else if (n_seq == 0){
+            n_seq = 1;
+        }
         printf("Received Receiver Ready frame\n");
-        printf("Connection established\n");
     }
     return ret;
 }
@@ -190,6 +203,8 @@ int llread(unsigned char *packet)
     - envia RR como confirmação
     */
 
+    //printf("Inside llread\n");
+
     unsigned char RR_packet[SU_BUF_SIZE];
     unsigned char REJ_packet[SU_BUF_SIZE];
 
@@ -202,10 +217,12 @@ int llread(unsigned char *packet)
     if (n_res == 1) {
         RR_packet[2] = 0x85;
         REJ_packet[2] = 0x81;
+        n_res = 0;
     }
     else if (n_res == 0) {
         RR_packet[2] = 0x05;
         REJ_packet[2] = 0x01;
+        n_res = 1;
     }
     else {
         printf("Error in n_res -> not a valid value (0 or 1)\n");
@@ -228,6 +245,12 @@ int llread(unsigned char *packet)
 
     receiver_write(RR_packet, SU_BUF_SIZE);
 
+    if (n_seq == 1){
+        n_seq = 0;
+    } else if (n_seq == 0){
+        n_seq = 1;
+    }
+
     printf("Number of chars in llread: %d\n", n);
         
     return n;
@@ -238,12 +261,42 @@ int llread(unsigned char *packet)
 ////////////////////////////////////////////////
 int llclose(int showStatistics)
 {
-    /*if (tcsetattr(fd, TCSANOW, &oldtio) == -1)
+    
+    unsigned char DISC_packet[SU_BUF_SIZE];
+
+    DISC_packet[0] = FLAG;
+    DISC_packet[1] = TRANSMITTER_COMMAND;
+    DISC_packet[2] = CONTROL_DISC;
+    DISC_packet[3] = (TRANSMITTER_COMMAND ^ CONTROL_DISC);
+    DISC_packet[4] = FLAG;
+
+    if (parameters.role == LlTx) {
+        
+        unsigned char UA_packet[SU_BUF_SIZE];
+        
+        UA_packet[0] = FLAG;
+        UA_packet[1] = TRANSMITTER_REPLY;
+        UA_packet[2] = CONTROL_UA;
+        UA_packet[3] = (TRANSMITTER_REPLY^CONTROL_UA);
+        UA_packet[4] = FLAG;
+
+        transmitterDisc(DISC_packet, parameters);
+
+        write(fd, UA_packet, SU_BUF_SIZE);
+    }
+    else if (parameters.role == LlRx) {
+
+        DISC_packet[1] = RECEIVER_REPLY;
+        DISC_packet[3] = (RECEIVER_REPLY ^ CONTROL_DISC);
+
+        receiverDisc(DISC_packet, parameters);
+    }
+
+    if (tcsetattr(fd, TCSANOW, &oldtio) == -1)
     {
         perror("tcsetattr");
         exit(-1);
     }
 
-    return close(fd); */
-    return 0;
+    return close(fd); 
 }

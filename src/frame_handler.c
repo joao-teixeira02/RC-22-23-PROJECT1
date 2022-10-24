@@ -12,6 +12,7 @@
 #define RECEIVER_READY 0x05
 
 extern int fd;
+extern int n_seq;
 
 volatile int STOP = FALSE;
 int alarm_enabled = FALSE;
@@ -19,8 +20,8 @@ int timeout_count = 0;
 
 State state;
 
-struct termios oldtio;
-struct termios newtio;
+extern struct termios oldtio;
+extern struct termios newtio;
 
 void stateMachine(State * state, unsigned char byte, LinkLayer connectionParameters)
 {
@@ -188,7 +189,6 @@ int receiver(unsigned char packet[], LinkLayer connectionParameters) {
 
     while (state != StateSTOP)
     {
-        // Returns after 1 chars has been input
         read(fd, &in_char, 1); 
         stateMachine(&state, in_char, connectionParameters);
     }
@@ -205,6 +205,21 @@ int receiver(unsigned char packet[], LinkLayer connectionParameters) {
 
 void stateMachine_Transmitter(State * state, unsigned char byte)
 {
+
+    unsigned char receiver_ready;
+    unsigned char receiver_reject;
+
+    if (n_seq == 1) {
+        receiver_ready = 0x05;
+        receiver_reject = 0x01;
+    } else if (n_seq == 0) {
+        receiver_ready = 0x85;
+        receiver_reject = 0x81;
+    } else {
+        printf("Error getting value of n_seq in statemachine_Transmitter\n");
+    }
+
+
     switch(*state){
     case StateSTART:
         if(byte == FLAG) {
@@ -226,28 +241,40 @@ void stateMachine_Transmitter(State * state, unsigned char byte)
     case StateA:
         if(byte == FLAG) {
             *state = StateFLAG;
-        }
-        else if(byte == RECEIVER_READY){
-            *state = StateC;
+        } else if(byte == receiver_ready){
+            *state = StateC_RR;
+        } else if (byte == receiver_reject){
+            *state = StateC_REJ;
         }
         else {
             *state = StateSTART;
         }
         
         break;
-    case StateC:
+    case StateC_RR:
         if(byte == FLAG){
             *state = StateFLAG;
         }
-        else if(byte == (RECEIVER_REPLY^RECEIVER_READY)) {
-            *state = StateBCC;
+        else if(byte == (RECEIVER_REPLY^receiver_ready)) {
+            *state = StateBCC_RR;
+        }
+        else {
+            *state = StateSTART;
+        }
+        break;
+    case StateC_REJ:
+        if(byte == FLAG){
+            *state = StateFLAG;
+        }
+        else if(byte == (RECEIVER_REPLY^receiver_reject)) {
+            *state = StateBCC_REJ;
         }
         else {
             *state = StateSTART;
         }
         break;
         
-    case StateBCC:
+    case StateBCC_RR:
         if(byte == FLAG){
             *state = StateSTOP;
         }
@@ -255,6 +282,9 @@ void stateMachine_Transmitter(State * state, unsigned char byte)
             *state = StateSTART;
         }
         
+        break;
+    case StateBCC_REJ:
+        *state = StateSTART;
         break;
     }
 }

@@ -64,7 +64,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
         llwrite(control_packet, 3 + size_in_bytes);
 
-        unsigned char info_packet[994];
+        unsigned char info_packet[999];
         info_packet[0] = CONTROL_DATA;
 
         char c = fgetc(in);
@@ -74,7 +74,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         while (!stop)
         {
             info_packet[1] = n_seq%255;
-            while (char_counter < 990 && !stop) {
+            while (char_counter < 995 && !stop) {
                 info_packet[4 + char_counter] = c;
                 char_counter++;
                 c = fgetc(in);
@@ -98,32 +98,25 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
     } else if (connectionparameters.role == LlRx){
 
-        unsigned char packet[11];
+        FILE *out;
+        out = fopen("penguin_new.gif", "wb");
+
+        unsigned char packet[1000];
 
         int n_chars = llread(&packet);
 
-        for(int i = 0; i < n_chars; i++) {
-            printf("info_packet value %d: %x\n", i, packet[i]);
-        }
-/* 
-        unsigned char in_char;
-
-        //Reading Control packet
-        for(int x = 0; x < 4; x++){
-            llread(&in_char);
+        while (packet[0] != 3) {
+            int n_chars = llread(&packet);
+            if (packet[0] == 1) {
+                for (int i = 4; i < packet[2]*256+packet[3]+4; i++) {
+                    fputc(packet[i], out);
+                }
+            }
         }
 
-        File *out;
-        out = fopen(filename, "wb");
+        fclose(out);
+    }
 
-        //Reading Info packets
-        while (state != stateSTOP)
-        {
-            llread(&in_char);
-            //statemachine(&in_char);
-        }
-        
-        fclose(out); */
-    }   
+    llclose(0);
 
 }
