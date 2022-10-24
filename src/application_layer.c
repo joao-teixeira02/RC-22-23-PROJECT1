@@ -82,12 +82,9 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         int stop = 0;
         while (!stop)
         {
-            printf("Creating new packet\n");
             info_packet[1] = n_seq%255;
-            printf("Added n_seq %d\n", info_packet[1]);
             while (char_counter < 990 && !stop) {
                 info_packet[4 + char_counter] = c;
-                printf("info_packet value %d: %c\n", 4 + char_counter, info_packet[4 + char_counter]);
                 char_counter++;
                 c = fgetc(in);
                 if (c == EOF) {

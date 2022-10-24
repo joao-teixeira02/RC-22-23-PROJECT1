@@ -9,6 +9,7 @@
 #define CONTROL_SET 0x03
 #define CONTROL_UA 0x07
 #define SU_BUF_SIZE 5
+#define RECEIVER_READY 0x05
 
 extern int fd;
 
@@ -140,7 +141,6 @@ int setupTermios(LinkLayer connectionParameters)
 void alarmHandler(int signal)
 {
     alarm_enabled = FALSE;
-    state = StateSTART;
     timeout_count++;
     printf("Timeout #%d\n", timeout_count);
 }
@@ -161,6 +161,7 @@ int transmitter(unsigned char packet[], LinkLayer connectionParameters)
             sleep(1);
             printf("Sent set frame\n");
             alarm(connectionParameters.timeout); // Set alarm
+            state = StateSTART;
             alarm_enabled = TRUE;
         }
 
@@ -200,4 +201,60 @@ int receiver(unsigned char packet[], LinkLayer connectionParameters) {
     printf("Connection established\n");
 
     return 0;
+}
+
+void stateMachine_Transmitter(State * state, unsigned char byte)
+{
+    switch(*state){
+    case StateSTART:
+        if(byte == FLAG) {
+            *state = StateFLAG;
+        }
+        break;
+    case StateFLAG:
+        if(byte == FLAG) {
+            *state = StateFLAG;
+        }
+        else if(byte == RECEIVER_REPLY) {
+            *state = StateA;
+        }
+        else {
+            *state = StateSTART;
+        }
+        
+        break;
+    case StateA:
+        if(byte == FLAG) {
+            *state = StateFLAG;
+        }
+        else if(byte == RECEIVER_READY){
+            *state = StateC;
+        }
+        else {
+            *state = StateSTART;
+        }
+        
+        break;
+    case StateC:
+        if(byte == FLAG){
+            *state = StateFLAG;
+        }
+        else if(byte == (RECEIVER_REPLY^RECEIVER_READY)) {
+            *state = StateBCC;
+        }
+        else {
+            *state = StateSTART;
+        }
+        break;
+        
+    case StateBCC:
+        if(byte == FLAG){
+            *state = StateSTOP;
+        }
+        else {
+            *state = StateSTART;
+        }
+        
+        break;
+    }
 }

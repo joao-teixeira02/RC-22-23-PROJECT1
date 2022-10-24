@@ -33,4 +33,6 @@ int transmitter(unsigned char packet[], LinkLayer connectionParameters);
 
 int receiver(unsigned char packet[], LinkLayer connectionParameters);
 
+void stateMachine_Transmitter(State * state, unsigned char byte);
+
 #endif // _FRAME_HANDLER_H

@@ -25,19 +25,31 @@
 #define RECEIVER_REPLY 0x03
 #define CONTROL_SET 0x03
 #define CONTROL_UA 0x07
+#define BCC_HEADER 0x01
+#define BCC_DATA 0x02
+#define CONTROL_DATA 0x01
+#define CONTROL_START 0x02
+#define CONTROL_END 0x03
 #define SU_BUF_SIZE 5
+#define ESCAPE 0x7D
+#define FLAG_SUBST 0x5E
+#define ESCAPE_SUBST 0x5D
 
 #define TIMEOUT_SECS 3
 #define MAX_TIMEOUTS 3
 
 int fd;
+int Ns = 0;
 LinkLayer parameters;
+extern int timeout_count;
+extern int alarm_enabled;
 
 ////////////////////////////////////////////////
 // LLOPEN
 ////////////////////////////////////////////////
 int llopen(LinkLayer connectionParameters)
 {
+    parameters = connectionParameters;
     fd = open(connectionParameters.serialPort, O_RDWR | O_NOCTTY);
     if (fd < 0)
     {
@@ -86,15 +98,80 @@ int llwrite(const unsigned char *buf, int bufSize)
 {
 
     /*
-    - recebe control e info packets do app layer
-    - faz byte stuffing 
-    - cria uma trama a partir deles 
-    - escreve a trama para o receiver
-    - esperar RR para terminar
-    - (usa state machine para verificar valores e auxilio no byte stuffing)
+    - -> recebe control e info packets do app layer
+    - -> faz byte stuffing 
+    - -> cria uma trama a partir deles 
+    - -> escreve a trama para o receiver
+    - -> esperar RR para terminar
+    - -> (usa state machine para verificar valores e auxilio no byte stuffing)
     */
-    int ret = write(fd, buf, bufSize);
-    sleep(1);
+    unsigned char data_package[2000];
+    data_package[0] = FLAG;
+    data_package[1] = TRANSMITTER_COMMAND;
+    data_package[2] = (Ns) << 6;
+    data_package[4 + bufSize + 1] = FLAG;
+
+    if(buf[0] == CONTROL_START || buf[0] == CONTROL_END){
+        data_package[3] = BCC_HEADER;
+        data_package[4 + bufSize] = BCC_HEADER;
+    } else if (buf[0] == CONTROL_DATA) {
+        data_package[3] = BCC_DATA;
+        data_package[4 + bufSize] = BCC_DATA;
+    } else {
+        printf("Error reading buf[0] value in llwrite()\n");
+    }
+
+    int offset = 0;
+    for(int x = 0; x < bufSize; x++){
+        if (buf[x] == FLAG) {
+            data_package[4 + x + offset] = ESCAPE;
+            data_package[4 + x + 1 + offset] = FLAG_SUBST;
+            offset++;
+        } else if (buf[x] == ESCAPE) {
+            data_package[4 + x + offset] = ESCAPE;
+            data_package[4 + x + 1 + offset] = ESCAPE_SUBST;
+            offset++;
+        } else {
+            data_package[4 + x + offset] = buf[x];       
+        }
+    }
+
+    (void)signal(SIGALRM, alarmHandler);
+    (void)siginterrupt(SIGALRM,TRUE);
+
+    unsigned char in_char;
+    State state;
+    int ret;
+    timeout_count = 0;
+    alarm_enabled = FALSE;
+
+    while (state != StateSTOP && timeout_count < parameters.nRetransmissions)
+    {
+
+        if (alarm_enabled == FALSE)
+        {
+            ret = write(fd, data_package, 4 + bufSize + 2 + offset);
+            sleep(1);
+            printf("Sent data package\n");
+            alarm(parameters.timeout);
+            state = StateSTART;
+            alarm_enabled = TRUE;
+        }
+
+        read(fd, &in_char, 1);
+        stateMachine_Transmitter(&state, in_char);
+    }
+
+    alarm(0);
+
+    if(timeout_count == parameters.nRetransmissions){
+        printf("Max timeouts exceeded\n");
+        exit(-1);
+    }
+    else{
+        printf("Received Receiver Ready frame\n");
+        printf("Connection established\n");
+    }
     return ret;
 }
 
