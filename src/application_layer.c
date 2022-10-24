@@ -62,15 +62,6 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
             control_packet[3 + size_in_bytes - 1 - i] = (file_size & (0xff << (8 * i))) >> (8 * i);
         }
 
-/*         printf("Pacote de Controlo \n");
-        printf("Campo de Controlo: %x\n", control_packet[0]);
-        printf("Tipo de parametro: %x\n", control_packet[1]);
-        printf("Tamanho do parametro: %d bytes\n", control_packet[2]);
-
-        for(int x = 0; x < size_in_bytes; x++){
-            printf("Tamanho do ficheiro %d: %x\n", x, control_packet[3 + x]);
-        }  */
-
         llwrite(control_packet, 3 + size_in_bytes);
 
         unsigned char info_packet[994];
@@ -106,6 +97,14 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         fclose(in);
 
     } else if (connectionparameters.role == LlRx){
+
+        unsigned char packet[11];
+
+        int n_chars = llread(&packet);
+
+        for(int i = 0; i < n_chars; i++) {
+            printf("info_packet value %d: %x\n", i, packet[i]);
+        }
 /* 
         unsigned char in_char;
 

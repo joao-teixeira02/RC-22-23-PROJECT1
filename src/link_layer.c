@@ -2,6 +2,7 @@
 
 #include "link_layer.h"
 #include "frame_handler.h"
+#include "receiver_read.h"
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,7 +40,8 @@
 #define MAX_TIMEOUTS 3
 
 int fd;
-int Ns = 0;
+int n_seq = 0;
+int n_res = 1;
 LinkLayer parameters;
 extern int timeout_count;
 extern int alarm_enabled;
@@ -187,9 +189,48 @@ int llread(unsigned char *packet)
     - guarda o packet recebido dentro da trama no packet de argumento
     - envia RR como confirmação
     */
-    int ret = read(fd, packet, sizeof(&packet));
-    sleep(1);
-    return ret;
+
+    unsigned char RR_packet[SU_BUF_SIZE];
+    unsigned char REJ_packet[SU_BUF_SIZE];
+
+    REJ_packet[0] = FLAG;
+    REJ_packet[1] = RECEIVER_REPLY;
+
+    RR_packet[0] = FLAG;
+    RR_packet[1] = RECEIVER_REPLY;
+
+    if (n_res == 1) {
+        RR_packet[2] = 0x85;
+        REJ_packet[2] = 0x81;
+    }
+    else if (n_res == 0) {
+        RR_packet[2] = 0x05;
+        REJ_packet[2] = 0x01;
+    }
+    else {
+        printf("Error in n_res -> not a valid value (0 or 1)\n");
+        exit(-1);
+    }
+
+    REJ_packet[3] = RECEIVER_REPLY ^ RR_packet[2];
+    REJ_packet[4] = FLAG;
+
+    RR_packet[3] = RECEIVER_REPLY  ^ RR_packet[2];
+    RR_packet[4] = FLAG;
+
+    int n;
+
+    do {
+        n = receiver_read(packet);
+        if (n == -2) receiver_write(RR_packet, SU_BUF_SIZE);
+        if (n == -1) receiver_write(REJ_packet, SU_BUF_SIZE);
+    } while (n <= 0);
+
+    receiver_write(RR_packet, SU_BUF_SIZE);
+
+    printf("Number of chars in llread: %d\n", n);
+        
+    return n;
 }
 
 ////////////////////////////////////////////////
