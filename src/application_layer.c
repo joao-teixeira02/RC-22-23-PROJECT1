@@ -1,17 +1,6 @@
 // Application layer protocol implementation
 
 #include "application_layer.h"
-#include "link_layer.h"
-#include <signal.h>
-#include <stdio.h>
-#include <math.h>
-
-#define CONTROL_DATA 0x01
-#define CONTROL_START 0x02
-#define CONTROL_END 0x03
-#define TYPE_SIZE 0x00
-#define L2 0x02
-#define L1 0x00
 
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
                       int nTries, int timeout, const char *filename)
@@ -33,7 +22,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     connectionparameters.nRetransmissions = nTries;
     connectionparameters.timeout = timeout;
 
-    int fd = llopen(connectionparameters);
+    llopen(connectionparameters);
 
     if (connectionparameters.role == LlTx) {
         
@@ -106,7 +95,8 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         int n_chars = llread(&packet);
 
         while (packet[0] != 3) {
-            int n_chars = llread(&packet);
+            n_chars = llread(&packet);
+            printf("Read %d chars\n", n_chars);
             if (packet[0] == 1) {
                 for (int i = 4; i < packet[2]*256+packet[3]+4; i++) {
                     fputc(packet[i], out);

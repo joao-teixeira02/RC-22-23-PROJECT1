@@ -9,6 +9,7 @@
 #include <termios.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include "macros.h"
 
 #ifndef _DISCONNECT_H
 #define _DISCONNECT_H

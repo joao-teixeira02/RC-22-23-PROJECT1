@@ -1,9 +1,5 @@
 #include "receiver_read.h"
 
-#define FLAG 0x7E
-#define A 0x03
-#define ESC 0x7D
-
 extern int fd;
 extern int n_seq;
 
@@ -41,7 +37,7 @@ void stateMachineReceiver(State * state, unsigned char byte)
         if(byte == FLAG) {
             *state = StateFLAG;
         }
-        else if(byte == A) {
+        else if(byte == TRANSMITTER_COMMAND) {
             *state = StateA;
         }
         else {
@@ -76,7 +72,7 @@ void stateMachineReceiver(State * state, unsigned char byte)
         if(byte == FLAG){
             *state = StateFLAG;
         }
-        else if(byte == (A^C)) {
+        else if(byte == (TRANSMITTER_COMMAND^C)) {
             *state = StateBCC1;
         }
         else {
@@ -96,7 +92,7 @@ void stateMachineReceiver(State * state, unsigned char byte)
 
     case StateDATA:
 
-        if(byte == ESC) {
+        if(byte == ESCAPE) {
             *state = StateDESTUFFING;
         }
         else if(byte == FLAG) {
@@ -114,7 +110,8 @@ void stateMachineReceiver(State * state, unsigned char byte)
 }
 
 int receiver_write(unsigned char * packet, int size) {
-    write(fd, packet, size);
+    if (write(fd, packet, size) > 0) return 0;
+    else return -1;
 }
 
 int receiver_read(unsigned char * packet) {

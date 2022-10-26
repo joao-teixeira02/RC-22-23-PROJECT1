@@ -1,17 +1,5 @@
 #include "disconnect.h"
 
-#define BUF_SIZE 256
-#define FLAG 0x7E
-#define TRANSMITTER_COMMAND 0x03
-#define TRANSMITTER_REPLY 0x01
-#define RECEIVER_COMMAND 0x01
-#define RECEIVER_REPLY 0x03
-#define CONTROL_SET 0x03
-#define CONTROL_UA 0x07
-#define SU_BUF_SIZE 5
-#define RECEIVER_READY 0x05
-#define CONTROL_DISC 0x0B
-
 extern int fd;
 extern int n_seq;
 

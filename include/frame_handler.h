@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 #include <termios.h>
 #include <unistd.h>
+#include "macros.h"
 
 #ifndef _FRAME_HANDLER_H
 #define _FRAME_HANDLER_H

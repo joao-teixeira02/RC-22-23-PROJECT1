@@ -8,11 +8,14 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include "macros.h"
 
 #ifndef _RECEIVER_READ_H
 #define _RECEIVE_READ_H
 
 void stateMachineReceiver(State * state, unsigned char byte);
+
+int receiver_write(unsigned char * packet, int size);
 
 int receiver_read(unsigned char * packet);
 
