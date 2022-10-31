@@ -33,25 +33,17 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         long int file_size = ftell(in);
         fseek(in, 0L, SEEK_SET);
 
-        int size_in_bits = 1;
-        long int temp = file_size;
-        while(temp >>= 1){
-            size_in_bits++;
-        }
-
-        int size_in_bytes = (size_in_bits + (8 - 1)) / 8;
-
-        unsigned char control_packet[3 + size_in_bytes];
+        unsigned char control_packet[3 + file_size];
 
         control_packet[0] = CONTROL_START;
         control_packet[1] = TYPE_SIZE;
-        control_packet[2] = size_in_bytes;
+        control_packet[2] = file_size;
 
-        for (int i = 0; i < size_in_bytes; i++) {
-            control_packet[3 + size_in_bytes - 1 - i] = (file_size & (0xff << (8 * i))) >> (8 * i);
+        for (int i = 0; i < file_size; i++) {
+            control_packet[3 + file_size - 1 - i] = (file_size & (0xff << (8 * i))) >> (8 * i);
         }
 
-        llwrite(control_packet, 3 + size_in_bytes);
+        llwrite(control_packet, 3 + file_size);
 
         unsigned char info_packet[999];
         info_packet[0] = CONTROL_DATA;
@@ -81,7 +73,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         }
 
         control_packet[0] = CONTROL_END;
-        llwrite(control_packet, 3 + size_in_bytes);
+        llwrite(control_packet, 3 + file_size);
 
         fclose(in);
 

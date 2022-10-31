@@ -107,6 +107,8 @@ void stateMachineReceiver(State * state, unsigned char byte)
         *state = StateDATA;
         break;
     }
+    default:
+        break;
 }
 
 int receiver_write(unsigned char * packet, int size) {

@@ -93,6 +93,8 @@ void stateMachine(State * state, unsigned char byte, LinkLayer connectionParamet
         
         break;
     }
+    default:
+        break;
 }
 
 int setupTermios(LinkLayer connectionParameters) 

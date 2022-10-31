@@ -91,6 +91,8 @@ void stateMachineTransmitter(State * state, unsigned char byte)
         *state = StateSTART;
         break;
     }
+    default:
+        break;
 }
 
 int transmitter_write(LinkLayer parameters, const unsigned char *buf, int bufSize) {

@@ -77,6 +77,8 @@ void stateMachineDisc(State * state, unsigned char byte, LinkLayer connectionPar
         
         break;
     }
+    default:
+        break;
 }
 
 int transmitterDisc(unsigned char packet[], LinkLayer connectionParameters) 
