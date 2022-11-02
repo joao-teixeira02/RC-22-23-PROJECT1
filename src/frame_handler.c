@@ -92,9 +92,11 @@ void stateMachine(State * state, unsigned char byte, LinkLayer connectionParamet
         }
         
         break;
-    }
+
     default:
         break;
+    }
+
 }
 
 int setupTermios(LinkLayer connectionParameters) 
@@ -161,7 +163,7 @@ int transmitter(unsigned char packet[], LinkLayer connectionParameters)
         if (alarm_enabled == FALSE)
         {
             write(fd, packet, SU_BUF_SIZE);
-            sleep(1);
+            //sleep(1);
             printf("Sent set frame\n");
             alarm(connectionParameters.timeout); // Set alarm
             state = StateSTART;
@@ -197,7 +199,7 @@ int receiver(unsigned char packet[], LinkLayer connectionParameters) {
     printf("Received set frame\n");
 
     write(fd, packet, SU_BUF_SIZE);
-    sleep(1);
+    //sleep(1);
     printf("Sent unnumbered acknowledgement frame\n");
 
     printf("Connection established\n");

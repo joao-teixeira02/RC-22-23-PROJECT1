@@ -106,9 +106,11 @@ void stateMachineReceiver(State * state, unsigned char byte)
     case StateDESTUFFING:
         *state = StateDATA;
         break;
-    }
+
     default:
         break;
+    }
+
 }
 
 int receiver_write(unsigned char * packet, int size) {

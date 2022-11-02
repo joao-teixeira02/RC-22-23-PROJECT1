@@ -76,9 +76,10 @@ void stateMachineDisc(State * state, unsigned char byte, LinkLayer connectionPar
         }
         
         break;
-    }
+
     default:
         break;
+    }
 }
 
 int transmitterDisc(unsigned char packet[], LinkLayer connectionParameters) 
@@ -98,7 +99,7 @@ int transmitterDisc(unsigned char packet[], LinkLayer connectionParameters)
         if (alarm_enabled == FALSE)
         {
             write(fd, packet, SU_BUF_SIZE);
-            sleep(1);
+            //sleep(1);
             printf("Sent disc frame\n");
             alarm(connectionParameters.timeout); // Set alarm
             state = StateSTART;
@@ -136,7 +137,7 @@ int receiverDisc(unsigned char packet[], LinkLayer connectionParameters) {
     printf("Received Disc frame\n");
 
     write(fd, packet, SU_BUF_SIZE);
-    sleep(1);
+    //sleep(1);
     printf("Sent Disc frame\n");
 
     printf("Disconnecting\n");

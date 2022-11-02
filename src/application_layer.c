@@ -1,6 +1,13 @@
 // Application layer protocol implementation
 
 #include "application_layer.h"
+#include "link_layer.h"
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <macros.h>
+#include <time.h>
 
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
                       int nTries, int timeout, const char *filename)
@@ -22,6 +29,9 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     connectionparameters.nRetransmissions = nTries;
     connectionparameters.timeout = timeout;
 
+    clock_t start_t, end_t;
+    double total_t;
+
     llopen(connectionparameters);
 
     if (connectionparameters.role == LlTx) {
@@ -31,19 +41,27 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
         fseek(in, 0L, SEEK_END);
         long int file_size = ftell(in);
-        fseek(in, 0L, SEEK_SET);
+        fseek(in, 0L, SEEK_SET);        
+        
+        int size_in_bits = 1;
+        long int temp = file_size;
+        while(temp >>= 1){
+            size_in_bits++;
+        }
 
-        unsigned char control_packet[3 + file_size];
+        int size_in_bytes = (size_in_bits + (8 - 1)) / 8;
+
+        unsigned char control_packet[3 + size_in_bytes];
 
         control_packet[0] = CONTROL_START;
         control_packet[1] = TYPE_SIZE;
-        control_packet[2] = file_size;
+        control_packet[2] = size_in_bytes;
 
-        for (int i = 0; i < file_size; i++) {
-            control_packet[3 + file_size - 1 - i] = (file_size & (0xff << (8 * i))) >> (8 * i);
+        for (int i = 0; i < size_in_bytes; i++) {
+            control_packet[3 + size_in_bytes - 1 - i] = (file_size & (0xff << (8 * i))) >> (8 * i);
         }
 
-        llwrite(control_packet, 3 + file_size);
+        llwrite(control_packet, 3 + size_in_bytes);
 
         unsigned char info_packet[999];
         info_packet[0] = CONTROL_DATA;
@@ -52,6 +70,11 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         int char_counter = 0;
         int n_seq = 0;
         int stop = 0;
+
+        start_t = clock();
+
+        sleep(10);
+
         while (!stop)
         {
             info_packet[1] = n_seq%255;
@@ -72,8 +95,18 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
             char_counter = 0;
         }
 
+        end_t = clock();
+
+        total_t = (double)(end_t - start_t) / CLOCKS_PER_SEC;
+
+        double theor_time = (file_size*8)/baudRate; //theoretical time
+
+        printf("Total time to send all info packets: %f ms\n", total_t*1000);
+
+        printf("Efficiency: %f\n", theor_time/total_t);
+
         control_packet[0] = CONTROL_END;
-        llwrite(control_packet, 3 + file_size);
+        llwrite(control_packet, 3 + size_in_bytes);
 
         fclose(in);
 

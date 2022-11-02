@@ -90,9 +90,10 @@ void stateMachineTransmitter(State * state, unsigned char byte)
     case StateBCC_REJ:
         *state = StateSTART;
         break;
-    }
+
     default:
         break;
+    }
 }
 
 int transmitter_write(LinkLayer parameters, const unsigned char *buf, int bufSize) {
@@ -112,7 +113,7 @@ int transmitter_write(LinkLayer parameters, const unsigned char *buf, int bufSiz
         if (alarm_enabled == FALSE)
         {
             ret = write(fd, buf, bufSize);
-            sleep(1);
+            //sleep(1);
             printf("Sent data package\n");
             alarm(parameters.timeout);
             state = StateSTART;

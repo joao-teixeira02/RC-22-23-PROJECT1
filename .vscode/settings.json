@@ -47,6 +47,7 @@
         "stdexcept": "cpp",
         "streambuf": "cpp",
         "cstdbool": "cpp",
-        "typeinfo": "cpp"
+        "typeinfo": "cpp",
+        "macros.h": "c"
     }
 }

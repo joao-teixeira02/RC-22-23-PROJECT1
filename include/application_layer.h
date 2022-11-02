@@ -1,13 +1,6 @@
 // Application layer protocol header.
 // NOTE: This file must not be changed.
 
-#include "link_layer.h"
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <macros.h>
-
 #ifndef _APPLICATION_LAYER_H_
 #define _APPLICATION_LAYER_H_
 
