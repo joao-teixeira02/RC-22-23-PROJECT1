@@ -100,7 +100,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
             }
             info_packet[2] = char_counter / 256;
             info_packet[3] = char_counter % 256;
-            llwrite(info_packet, 4 + char_counter);
+            llwrite(info_packet, 4 + char_counter);        
             n_seq++;
             char_counter = 0;
         }

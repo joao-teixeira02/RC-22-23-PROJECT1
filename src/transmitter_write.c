@@ -113,7 +113,7 @@ int transmitter_write(LinkLayer parameters, const unsigned char *buf, int bufSiz
         if (alarm_enabled == FALSE)
         {
             ret = write(fd, buf, bufSize);
-            sleep(1);
+            //usleep(1000*1000); //DESCOMENTAR SE ESTIVER A CORRER COM CABLE.C SENAO CALCULA EFICIENCIA ERRADA
             printf("Sent data package\n");
             alarm(parameters.timeout);
             state = StateSTART;
