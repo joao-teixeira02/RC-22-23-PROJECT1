@@ -9,6 +9,19 @@
 #include <macros.h>
 #include <time.h>
 
+struct timespec initial_time, final_time;
+
+void start_counting_time(){
+    clock_gettime(CLOCK_REALTIME, &initial_time);
+}
+
+double calculate_time_elapsed(){
+  clock_gettime(CLOCK_REALTIME, &final_time);
+  double time_val = (final_time.tv_sec-initial_time.tv_sec)+
+					(final_time.tv_nsec- initial_time.tv_nsec)/1E9;
+  return time_val;
+}
+
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
                       int nTries, int timeout, const char *filename)
 {
@@ -29,7 +42,6 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     connectionparameters.nRetransmissions = nTries;
     connectionparameters.timeout = timeout;
 
-    clock_t start_t, end_t;
     double total_t;
 
     llopen(connectionparameters);
@@ -71,9 +83,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         int n_seq = 0;
         int stop = 0;
 
-        start_t = clock();
-
-        sleep(10);
+        start_counting_time();
 
         while (!stop)
         {
@@ -95,9 +105,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
             char_counter = 0;
         }
 
-        end_t = clock();
-
-        total_t = (double)(end_t - start_t) / CLOCKS_PER_SEC;
+        total_t = calculate_time_elapsed();
 
         double theor_time = (file_size*8)/baudRate; //theoretical time
 
